@@ -485,25 +485,50 @@ export function DashboardClient({
             <div className="grid gap-3 md:grid-cols-2">
               {roadmap.skills.map((skill) => {
                 const score = confidence[skill.skill_id] ?? 0;
+                const courseQuery = encodeURIComponent(`${skill.skill_name} ${roadmap.career_goal} course`);
+                const coursesUrl = `https://www.coursera.org/search?query=${courseQuery}`;
                 return (
                   <article key={skill.skill_id} className="rounded-2xl border border-white/5 bg-white/[0.025] p-4">
                     <div className="flex items-center justify-between gap-3">
                       <strong className="text-sm text-slate-100">{skill.skill_name}</strong>
                       <span className="text-xs font-semibold text-teal-200">{score}%</span>
                     </div>
+                    {skill.topics && skill.topics.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {skill.topics.map((topic) => (
+                          <span
+                            key={topic}
+                            className="rounded-full border border-violet-300/15 bg-violet-400/[0.08] px-2 py-0.5 text-[10px] font-medium text-violet-200"
+                          >
+                            {topic}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-label={`${skill.skill_name} quiz progress`} aria-valuenow={score} aria-valuemin={0} aria-valuemax={100}>
                       <div className="h-full rounded-full bg-gradient-to-r from-violet-400 to-teal-200" style={{ width: `${score}%` }} />
                     </div>
-                    <div className="mt-2 flex items-center justify-between gap-3">
+                    <div className="mt-2 flex items-center justify-between gap-2">
                       <span className="text-xs text-slate-500">{statuses[skill.skill_id]?.status.replace("_", " ")}</span>
-                      <button
-                        type="button"
-                        onClick={() => void startQuiz(skill.skill_id)}
-                        disabled={accountStatus !== "authenticated" || loadingSkill === skill.skill_id}
-                        className="rounded-full border border-violet-200/20 px-3 py-1.5 text-xs font-semibold text-violet-100 hover:bg-violet-400/10 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {loadingSkill === skill.skill_id ? "Generating…" : "Get progress"}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={coursesUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-full border border-teal-300/20 px-3 py-1.5 text-xs font-semibold text-teal-300 hover:bg-teal-400/10"
+                          title={`Find online courses for ${skill.skill_name}`}
+                        >
+                          Find courses →
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => void startQuiz(skill.skill_id)}
+                          disabled={accountStatus !== "authenticated" || loadingSkill === skill.skill_id}
+                          className="rounded-full border border-violet-200/20 px-3 py-1.5 text-xs font-semibold text-violet-100 hover:bg-violet-400/10 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {loadingSkill === skill.skill_id ? "Generating…" : "Show progress"}
+                        </button>
+                      </div>
                     </div>
                   </article>
                 );

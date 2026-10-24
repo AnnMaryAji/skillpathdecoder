@@ -8,6 +8,8 @@ export type Skill = {
   prerequisites: string[];
   estimated_hours: number;
   parallel_group_id: string;
+  /** 3-5 major topics / sub-skills learners will cover */
+  topics?: string[];
 };
 
 export type Roadmap = {
