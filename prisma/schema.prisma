@@ -14,6 +14,9 @@ model User {
   name           String?
   passwordHash   String?
   roadmapData    Json?
+  roadmapReviewedAt DateTime?
+  roadmapReviewSummary String?
+  roadmapReviewSources Json?
   createdAt      DateTime       @default(now())
   roadmaps       Roadmap[]
   notifications  Notification[]

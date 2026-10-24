@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 type Mode = "signup" | "login";
 
 export default function AccountPage() {
-  const router = useRouter();
   const [mode, setMode] = useState<Mode>("signup");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -45,13 +43,7 @@ export default function AccountPage() {
       const safeReturnTo = returnTo?.startsWith("/dashboard") && !returnTo.startsWith("//")
         ? returnTo
         : "/dashboard";
-      const returnParams = new URLSearchParams(safeReturnTo.split("?")[1] ?? "");
-      if (returnParams.has("eventId") && returnParams.has("eventSkill")) {
-        window.location.assign(safeReturnTo);
-        return;
-      }
-      router.push(safeReturnTo);
-      router.refresh();
+      window.location.assign(safeReturnTo);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Your account request could not be completed.");
     } finally {

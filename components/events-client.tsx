@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 
@@ -50,7 +49,6 @@ export function EventsClient({
   careerGoal: string;
   skillIds: string[];
 }) {
-  const router = useRouter();
   const [location, setLocation] = useState<Location | null>(null);
   const [locationState, setLocationState] = useState<"locating" | "available" | "unavailable">("locating");
   const [events, setEvents] = useState<EventRecord[]>([]);
@@ -123,15 +121,6 @@ export function EventsClient({
     void loadEvents();
     return () => controller.abort();
   }, [careerGoal, skillIds, location, locationState]);
-
-  function startEventQuiz(event: EventRecord, skillId: string) {
-    const params = new URLSearchParams({
-      eventId: event.id,
-      eventSkill: skillId,
-      eventRequest: window.crypto.randomUUID(),
-    });
-    router.push(`/dashboard?${params.toString()}`);
-  }
 
   return (
     <main className="mx-auto min-h-screen max-w-7xl px-5 py-10 sm:px-8">
@@ -209,16 +198,6 @@ export function EventsClient({
                 <a href={event.url} target="_blank" rel="noreferrer" className="rounded-full bg-violet-500 px-4 py-2 text-sm font-semibold text-white">
                   Register
                 </a>
-                {event.skills.map((skillId) => (
-                  <button
-                    key={skillId}
-                    type="button"
-                    onClick={() => startEventQuiz(event, skillId)}
-                    className="rounded-full border border-teal-200/20 px-4 py-2 text-sm font-semibold text-teal-100 hover:bg-teal-200/10"
-                  >
-                    I completed it · quiz: {skillId.replace(/[_-]+/g, " ")}
-                  </button>
-                ))}
               </div>
             </article>
           ))}

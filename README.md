@@ -5,6 +5,7 @@ SkillPath Decoder combines the original SkillPath interactive experience with th
 ## Features
 
 - AI-generated career roadmaps for user-entered roles (Gemini or OpenAI)
+- Weekly Gemini web-search reviews that append verified new roadmap skills
 - Role-aware roadmap generation without an API key, with the fallback clearly labeled
 - AI-personalized career roadmaps for user-entered roles
 - Adaptive career roadmap visualization and prerequisite graph
@@ -23,7 +24,7 @@ SkillPath Decoder combines the original SkillPath interactive experience with th
 5. Create a Gemini API key in [Google AI Studio](https://aistudio.google.com/apikey). Keep `AI_PROVIDER="gemini"` and add the key as `GEMINI_API_KEY`. The default `GEMINI_MODEL` is `gemini-3.1-flash-lite`; check Google's current [model list](https://ai.google.dev/gemini-api/docs/models) and [pricing and free-tier limits](https://ai.google.dev/gemini-api/docs/pricing) for availability in your region. Gemini's free tier has quotas and eligibility restrictions, and Google may use free-tier API content to improve its products; review the current terms before sending sensitive data.
 6. Prisma CLI reads `.env`, not `.env.local`. Copy `.env.local` to `.env` for local development, or put the same `DATABASE_URL` and `DIRECT_URL` values in both files. Keep both files private and never commit them.
 7. Install dependencies: `npm install`
-8. Apply the database migrations from the project folder: `npx prisma migrate deploy`
+8. Stop any running development server, then apply the database migrations and regenerate Prisma Client: `npx prisma migrate deploy` followed by `npx prisma generate`.
 9. Start the app: `npm run dev`, then open `http://localhost:3000`.
 
 Use the exact connection strings shown for your project in Supabase's **Connect** dialog; pooler hostnames include your project's region. The app connects directly to Supabase Postgres through Prisma. It does not use Supabase Auth or require the Supabase JavaScript client. Supabase's [Prisma guide](https://supabase.com/docs/guides/database/prisma) explains the connection modes and recommends a dedicated database role for Prisma in production.
@@ -45,9 +46,15 @@ Use the exact connection strings shown for your project in Supabase's **Connect*
 
 ## Progress and accounts
 
-Progress is not editable from the dashboard. A signed-in user requests an AI-generated quiz for a roadmap skill, submits all answers, and the server grades the stored quiz attempt. The score updates that skill's saved progress; the roadmap progress summary averages the skill scores. Event completion links open the dashboard with a quiz for a skill covered by the event.
+Progress is not editable from the dashboard. A signed-in user requests an AI-generated quiz for a roadmap skill, submits all answers, and the server grades the stored quiz attempt. The score updates that skill's saved progress; the roadmap progress summary averages the skill scores.
 
 Passwords are stored as scrypt hashes. Sessions use random, HTTP-only cookies and are stored in the database. Quiz scores are bound to the exact roadmap skill definition and cannot be reused after that skill changes. The migration intentionally resets older client-editable progress; users need to complete quizzes to establish verified scores. AI generation uses the server-side `AI_PROVIDER`, `GEMINI_API_KEY`, and `GEMINI_MODEL` settings by default. To use OpenAI instead, set `AI_PROVIDER="openai"` and configure `OPENAI_API_KEY` and `OPENAI_MODEL`.
+
+## Roadmap freshness reviews
+
+On Vercel, `vercel.json` schedules a daily review job. Each saved roadmap is checked no more than once every seven days, with up to three accounts reviewed per daily run. Reviews use Gemini with Google Search grounding to check current official documentation and release information. Source-backed, relevant new skills are appended to the roadmap; existing skills are left unchanged so their quiz scores and progress remain valid. The review date, summary, and citations appear on the dashboard.
+
+Apply the `20261025_roadmap_review` Prisma migration before deploying (`npx prisma migrate deploy`) and regenerate Prisma Client (`npx prisma generate`). Stop the local development server before generating the client if Windows reports that the Prisma query-engine file is locked. Set `CRON_SECRET` in the hosting environment; Vercel sends it as a bearer token to scheduled requests. For another hosting provider, configure a daily scheduler to send `GET` or `POST /api/jobs/review-roadmaps` with `Authorization: Bearer <CRON_SECRET>` (or the `x-roadmap-review-secret` header). The job requires `AI_PROVIDER="gemini"` and a valid `GEMINI_API_KEY`; Google Search grounding may have separate availability or usage limits. Local development does not run Vercel cron jobs automatically; invoke the route manually with the configured secret to test it.
 
 ## Event and notification notes
 

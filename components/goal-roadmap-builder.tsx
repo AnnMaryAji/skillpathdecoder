@@ -50,7 +50,6 @@ export function GoalRoadmapBuilder() {
         throw new Error("The roadmap service returned invalid skill data.");
       }
 
-      saveRoadmapToStorage(result.data);
       setRoadmap(result.data);
       setSource("source" in payload ? String(payload.source) : "Generated");
       const accountResponse = await fetch("/api/account/me", {
@@ -59,9 +58,18 @@ export function GoalRoadmapBuilder() {
         body: JSON.stringify({ roadmap: result.data }),
       });
       let accountRoadmapSaved = false;
-      if (accountResponse.status !== 401) {
+      if (accountResponse.status === 401) {
+        saveRoadmapToStorage(result.data);
+      } else {
         if (!accountResponse.ok) {
-          const accountPayload: unknown = await accountResponse.json();
+          let accountPayload: unknown;
+          try {
+            accountPayload = await accountResponse.json();
+          } catch {
+            throw new Error(
+              `Your roadmap could not be saved (HTTP ${accountResponse.status}). The account API returned a non-JSON response; check the app server logs.`,
+            );
+          }
           const accountError = typeof accountPayload === "object" && accountPayload !== null && "error" in accountPayload
             ? String(accountPayload.error)
             : "Your account could not save the roadmap.";

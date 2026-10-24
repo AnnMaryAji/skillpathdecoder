@@ -61,7 +61,7 @@ export async function POST(request: Request) {
           content: [
             "Create a practical career skill roadmap for the user's exact target role.",
             "Return only a JSON object with a `skills` array. Include 6 to 14 skills ordered from foundations to portfolio readiness.",
-            "Each skill must have: skill_id (unique lowercase snake_case), skill_name, category (Technical, Conceptual, or Practical/Portfolio), description, prerequisites (array of IDs from this same response), estimated_hours (integer), parallel_group_id.",
+            "Each skill must have: skill_id (unique lowercase snake_case string), skill_name, category (Technical, Conceptual, or Practical/Portfolio), description, prerequisites (array of IDs from this same response), estimated_hours (integer), parallel_group_id (string).",
             "Use accurate prerequisites, avoid cycles, include role-specific tools and methods, professional judgment, communication, and a hands-on portfolio project.",
             "Adapt depth to the requested target level. Do not invent credentials or claim guaranteed employment.",
           ].join(" "),

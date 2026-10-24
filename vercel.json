@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/jobs/review-roadmaps",
+      "schedule": "0 9 * * *"
+    }
+  ]
+}

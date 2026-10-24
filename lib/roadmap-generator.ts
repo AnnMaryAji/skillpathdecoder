@@ -15,10 +15,13 @@ export const generatedSkillSchema = z.object({
   description: z.string().min(8).max(500),
   prerequisites: z.array(z.string().min(1).max(80)).max(12),
   estimated_hours: z.number().int().min(1).max(500),
-  parallel_group_id: z.string().min(1).max(80),
+  parallel_group_id: z.union([
+    z.string().min(1).max(80),
+    z.number().int().nonnegative(),
+  ]).transform(String),
 });
 
-export const generatedSkillsSchema = z.array(generatedSkillSchema).min(5).max(16);
+export const generatedSkillsSchema = z.array(generatedSkillSchema).min(5).max(24);
 const generatedRoadmapResponseSchema = z.object({
   skills: generatedSkillsSchema,
 });

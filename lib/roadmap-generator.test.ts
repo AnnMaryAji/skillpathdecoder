@@ -46,4 +46,19 @@ describe("role-based roadmap generation", () => {
     expect(parsed.skills).toHaveLength(8);
     expect(validateDAG(parsed.skills).valid).toBe(true);
   });
+
+  it("normalizes numeric parallel group IDs returned by Gemini", () => {
+    const roadmap = createRoleBasedRoadmap("Front End Developer", "Entry");
+    const aiSkills = roadmap.skills.map((skill, index) => ({
+      ...skill,
+      parallel_group_id: index < 2 ? 1 : index + 1,
+    }));
+
+    const parsed = parseGeneratedRoadmap("Front End Developer", "Entry", { skills: aiSkills });
+
+    expect(parsed.skills.map((skill) => skill.parallel_group_id)).toEqual(
+      aiSkills.map((skill) => String(skill.parallel_group_id)),
+    );
+    expect(validateDAG(parsed.skills).valid).toBe(true);
+  });
 });

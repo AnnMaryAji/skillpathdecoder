@@ -20,6 +20,11 @@ type AccountState = {
   email: string;
   roadmap: Roadmap | null;
   skillProgress: Record<string, number>;
+  roadmapReview: {
+    checkedAt: string;
+    summary: string;
+    sources: { title: string; url: string }[];
+  } | null;
 };
 
 type QuizQuestion = {
@@ -47,6 +52,23 @@ const EMPTY_PROGRESS: Record<string, number> = {};
 function isProgressRecord(value: unknown): value is Record<string, number> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
     && Object.values(value).every((score) => typeof score === "number" && Number.isInteger(score) && score >= 0 && score <= 100);
+}
+
+function isRoadmapReview(value: unknown): value is NonNullable<AccountState["roadmapReview"]> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  if (!("checkedAt" in value) || typeof value.checkedAt !== "string") return false;
+  if (!("summary" in value) || typeof value.summary !== "string") return false;
+  if (!("sources" in value) || !Array.isArray(value.sources)) return false;
+  return value.sources.every((source) => {
+    if (typeof source !== "object" || source === null || Array.isArray(source)) return false;
+    if (!("title" in source) || typeof source.title !== "string") return false;
+    if (!("url" in source) || typeof source.url !== "string") return false;
+    try {
+      return new URL(source.url).protocol === "https:";
+    } catch {
+      return false;
+    }
+  });
 }
 
 async function getErrorMessage(response: Response, fallback: string) {
@@ -88,17 +110,17 @@ export function DashboardClient({
     let cancelled = false;
 
     async function loadAccount() {
-      let browserRoadmap: Roadmap | null = null;
       try {
-        try {
-          browserRoadmap = readRoadmapFromStorage();
-          setLocalRoadmap(browserRoadmap);
-        } catch (error) {
-          setMessage(error instanceof Error ? error.message : "Your browser roadmap could not be loaded.");
-        }
-
         const response = await fetch("/api/account/me", { cache: "no-store" });
         if (response.status === 401) {
+          try {
+            const browserRoadmap = readRoadmapFromStorage();
+            if (!cancelled) setLocalRoadmap(browserRoadmap);
+          } catch (error) {
+            if (!cancelled) {
+              setMessage(error instanceof Error ? error.message : "Your browser roadmap could not be loaded.");
+            }
+          }
           if (!cancelled) setAccountStatus("anonymous");
           return;
         }
@@ -120,20 +142,13 @@ export function DashboardClient({
           || !("email" in user) || typeof user.email !== "string"
           || !("name" in user) || (typeof user.name !== "string" && user.name !== null)
           || !isProgressRecord(payload.skillProgress)
+          || !("roadmapReview" in payload)
+          || (payload.roadmapReview !== null && !isRoadmapReview(payload.roadmapReview))
         ) {
           throw new Error("Your account service returned invalid account data.");
         }
 
-        let roadmap = parsedRoadmap?.success ? parsedRoadmap.data : null;
-        if (!roadmap && browserRoadmap) {
-          const saveResponse = await fetch("/api/account/me", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roadmap: browserRoadmap }),
-          });
-          if (!saveResponse.ok) throw new Error(await getErrorMessage(saveResponse, "Your roadmap could not be saved."));
-          roadmap = browserRoadmap;
-        }
+        const roadmap = parsedRoadmap?.success ? parsedRoadmap.data : null;
 
         if (!cancelled) {
           setAccount({
@@ -142,6 +157,7 @@ export function DashboardClient({
             email: user.email,
             roadmap,
             skillProgress: payload.skillProgress,
+            roadmapReview: payload.roadmapReview === null ? null : payload.roadmapReview,
           });
           setAccountStatus("authenticated");
         }
@@ -395,6 +411,25 @@ export function DashboardClient({
                 </div>
                 <span className="rounded-full border border-violet-200/15 bg-violet-400/10 px-3 py-1 text-sm font-semibold text-violet-100">{roadmap.target_level}</span>
               </div>
+              {account?.roadmapReview && (
+                <div className="mb-4 rounded-2xl border border-teal-200/15 bg-teal-200/5 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.15em] text-teal-200">
+                    Path review · {new Date(account.roadmapReview.checkedAt).toLocaleDateString()}
+                  </p>
+                  <p className="mt-2 text-sm text-slate-200">{account.roadmapReview.summary}</p>
+                  {account.roadmapReview.sources.length > 0 && (
+                    <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                      {account.roadmapReview.sources.map((source) => (
+                        <li key={source.url}>
+                          <a href={source.url} target="_blank" rel="noreferrer" className="text-xs text-teal-200 underline decoration-teal-200/40 underline-offset-2">
+                            {source.title}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
               <RoadmapGraph skills={roadmap.skills} statuses={statuses} />
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xs text-slate-400">Quiz scores update your progress. A skill unlocks its dependents at 80%.</p>
